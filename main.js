@@ -110,7 +110,7 @@ import { supabase } from './supabaseClient.js';
       const img = document.createElement("img");
       img.className = "funcionario-foto";
       img.src = c.foto;
-      img.alt = `Foto de ${c.nome}`;
+      img.alt = Foto de ${c.nome};
       card.appendChild(img);
 
       const info = document.createElement("div");
@@ -123,12 +123,12 @@ import { supabase } from './supabaseClient.js';
 
       const cargo = document.createElement("div");
       cargo.className = "funcionario-cargo";
-      cargo.textContent = `Cargo: ${c.cargo}`;
+      cargo.textContent = Cargo: ${c.cargo};
       info.appendChild(cargo);
 
       const turno = document.createElement("div");
       turno.className = "funcionario-turno";
-      turno.textContent = `Turno: ${c.turno}`;
+      turno.textContent = Turno: ${c.turno};
       info.appendChild(turno);
 
       const btnExcluir = document.createElement("button");
@@ -232,8 +232,8 @@ import { supabase } from './supabaseClient.js';
 
     // Upload da foto para storage
     const fileExt = fotoFile.name.split('.').pop();
-    const fileName = `${Date.now()}.${fileExt}`;
-    const filePath = `colaboradores/${fileName}`;
+    const fileName = ${Date.now()}.${fileExt};
+    const filePath = colaboradores/${fileName};
 
     let { error: uploadError } = await supabase.storage
       .from('imagens') // Certifique-se que seu bucket se chama 'imagens' ou ajuste aqui
@@ -287,8 +287,8 @@ import { supabase } from './supabaseClient.js';
     }
 
     const fileExt = fotoFile.name.split('.').pop();
-    const fileName = `${Date.now()}.${fileExt}`;
-    const filePath = `dialogos/${fileName}`;
+    const fileName = ${Date.now()}.${fileExt};
+    const filePath = dialogos/${fileName};
 
     let { error: uploadError } = await supabase.storage
       .from('imagens') // Certifique-se que seu bucket se chama 'imagens' ou ajuste aqui
