@@ -1,6 +1,6 @@
 import { supabase } from './supabaseClient.js';
 
-  const SENHA_UNICA = "1234"; // Mantenha em mente os riscos de segurança de senha no frontend
+  const SENHA_UNICA = "mend123"; // Mantenha em mente os riscos de segurança de senha no frontend
 
   // Controle da ação atual após senha: 'colaborador' ou 'dialogo'
   let acaoAtual = null;
