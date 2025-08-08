@@ -169,51 +169,28 @@ import { supabase } from './supabaseClient.js';
     });
   }
 
-  // Mostrar modal senha
-  function abrirModalSenha(acao, id = null) { // id é para o caso de exclusão
-    esconderTodosModaisFormulario(); // Garante que nenhum modal de formulário esteja aberto
-    acaoAtual = acao; // 'colaborador', 'dialogo' ou 'excluir-colaborador'
-    if (acao === 'excluir-colaborador') {
-        modalSenha.dataset.colaboradorId = id; // Armazena o ID do colaborador
-    } else {
-        delete modalSenha.dataset.colaboradorId;
-    }
-    inputSenha.value = "";
-    msgErroSenha.style.display = "none";
-    modalSenha.style.display = "flex";
-    inputSenha.focus();
-  }
-
-  // Fechar modal senha
-  function fecharModalSenha() {
-    modalSenha.style.display = "none";
-    acaoAtual = null;
-    delete modalSenha.dataset.colaboradorId;
-  }
-
-  // Confirmar senha
   btnConfirmarSenha.onclick = async () => {
     const senha = inputSenha.value.trim();
     if (senha === SENHA_UNICA) {
-      fecharModalSenha();
-      if (acaoAtual === "colaborador") {
-        abrirModalColaborador();
-      } else if (acaoAtual === "dialogo") {
-        abrirModalDialogo();
-      } else if (acaoAtual === "excluir-colaborador") {
-        const colaboradorId = modalSenha.dataset.colaboradorId;
-        if (colaboradorId) {
-            const confirmDelete = confirm("Tem certeza que deseja excluir este colaborador?");
-            if (confirmDelete) {
-                await excluirColaborador(colaboradorId);
+        const acao = acaoAtual; // guarda antes de fechar
+        fecharModalSenha();
+        if (acao === "colaborador") {
+            abrirModalColaborador();
+        } else if (acao === "dialogo") {
+            abrirModalDialogo();
+        } else if (acao === "excluir-colaborador") {
+            const colaboradorId = modalSenha.dataset.colaboradorId;
+            if (colaboradorId) {
+                const confirmDelete = confirm("Tem certeza que deseja excluir este colaborador?");
+                if (confirmDelete) {
+                    await excluirColaborador(colaboradorId);
+                }
             }
         }
-      }
     } else {
-      msgErroSenha.style.display = "block";
+        msgErroSenha.style.display = "block";
     }
-  }
-
+}
   btnCancelarSenha.onclick = fecharModalSenha;
 
   // Abrir modal adicionar colaborador
