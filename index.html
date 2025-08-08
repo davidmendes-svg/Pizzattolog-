@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Painel de Operações - Pizzattolog</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm" type="module"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&amp;display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Open Sans', sans-serif;
+      background: url('https://i.postimg.cc/FzJfb8Yz/fundo.png') no-repeat center center fixed;
+      background-size: cover;
+      padding-top: 100px;
+      color: #222;
+      backdrop-filter: blur(2px); /* suaviza fundo */
+    }
+
+    main {
+      max-width: 1000px;
+      margin: 100px auto 40px auto;
+      background: rgba(255, 255, 255, 0.96);
+      border-radius: 16px;
+      padding: 40px;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.2);
+    }
+
+    nav {
+      display: flex;
+      background: rgba(0,0,0,0.8);
+      color: white;
+    }
+    nav button {
+      flex: 1;
+      padding: 12px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+      color: white;
+      transition: background 0.3s ease;
+    }
+    nav button.ativo, nav button:hover {
+      background: #0d6efd;
+    }
+    .aba {
+      display: none;
+    }
+    .aba.ativa {
+      display: block;
+    }
+
+    /* GALERIA DIÁLOGOS */
+    #galeriaDialogos {
+      display: grid;
+      grid-template-columns: repeat(auto-fit,minmax(220px,1fr));
+      gap: 16px;
+      margin-top: 20px;
+    }
+    #galeriaDialogos img {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      border-radius: 12px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+    }
+    /* Colaboradores - container grid */
+    .colaboradores-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill,minmax(280px,1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .funcionario-card {
+      background: rgba(255,255,255,0.95);
+      border-radius: 16px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      position: relative;
+      transition: 0.3s ease;
+    }
+    .funcionario-card:hover {
+      transform: translateY(-4px);
+    }
+    .funcionario-foto {
+      width: 80px;
+      height: 80px;
+      object-fit: cover;
+      border-radius: 50%;
+      border: 3px solid #0d6efd;
+    }
+    .funcionario-info {
+      display: flex;
+      flex-direction: column;
+    }
+    .funcionario-nome {
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+    }
+    .funcionario-cargo {
+      font-size: 15px;
+      color: #555;
+    }
+    .funcionario-turno {
+      font-size: 14px;
+      color: #888;
+    }
+  .fab { /* Estilo genérico para FABs */
+  position: fixed; /* Isso é crucial para eles flutuarem */
+  bottom: 30px;
+  background: #0d6efd;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 56px;
+  height: 56px;
+  font-size: 32px;
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+  z-index: 2000;
+  display: none; /* ISTO É O QUE OS ESCONDE INICIALMENTE */
+}
+#btnAddColaborador {
+  right: 30px;
+}
+#btnAddDialogo {
+  right: 100px;
+}
+    /* Modal base */
+    .modal {
+      display: none;
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 3000;
+      justify-content: center; /* Usa flex para centralizar */
+      align-items: center; /* Usa flex para centralizar */
+    }
+    .modal-content {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      max-width: 400px;
+      width: 90%;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    }
+    .modal-content h3 {
+      margin-bottom: 15px;
+    }
+    .modal-content input[type="text"],
+    .modal-content input[type="password"],
+    .modal-content input[type="file"],
+    .modal-content select { /* Adicionado select para consistência */
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 15px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 15px;
+    }
+    .modal-content button {
+      padding: 12px 18px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    .modal-content .btn-cancelar {
+      background: #6c757d;
+      color: white;
+      margin-right: 10px;
+    }
+    .modal-content .btn-cancelar:hover {
+      background: #5a6268;
+    }
+    .modal-content .btn-salvar {
+      background: #198754;
+      color: white;
+    }
+    .modal-content .btn-salvar:hover {
+      background: #146c43;
+    }
+    #msgErroSenha {
+      color: red;
+      display: none;
+      margin-top: 10px;
+      font-weight: 600;
+    }
+    /* Filtros */
+    #pesquisaNomeColaboradores, #filtroTurnoColaboradores {
+      margin-top: 20px;
+      padding: 12px;
+      width: 100%;
+      max-width: 300px;
+      font-size: 15px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+    @media (max-width: 768px) {
+      .foto-card img {
+        height: 180px;
+      }
+    }
+    /* Estilos específicos do formulário de operações */
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr; /* Padrão mobile */
+        gap: 20px;
+        margin-top: 20px;
+    }
+    @media (min-width: 768px) {
+        .form-grid {
+            grid-template-columns: 1fr 1fr; /* Duas colunas em desktop */
+        }
+    }
+    .form-grid label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 600;
+        color: #444;
+    }
+    .form-grid input, .form-grid select {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 15px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 16px;
+    }
+    .form-grid button {
+        width: 100%;
+        padding: 15px;
+        background: #0d6efd;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 18px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: background 0.3s ease;
+        grid-column: 1 / -1; /* Ocupa todas as colunas no grid */
+    }
+    .form-grid button:hover {
+        background: #0a58ca;
+    }
+    #campoOutro {
+        display: none; /* Escondido por padrão */
+    }
+    .btn-excluir {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: red;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  font-weight: bold;
+  cursor: pointer;
+}
+  </style>
+</head>
+<body>
+<nav>
+  <button onclick="mostrarAba('operacoes', event)" class="ativo">Formulário</button>
+  <button onclick="mostrarAba('colaboradores', event)">Colaboradores</button>
+  <button onclick="mostrarAba('dialogos', event)">Diálogos de Segurança</button>
+  <button onclick="mostrarAba('checklist', event)">Checklist</button>
+  <button onclick="mostrarAba('indicadores', event)">Indicadores</button>
+</nav>
+
+<main>
+  <div id="operacoes" class="aba ativa">
+    <h2>FORMULÁRIO</h2>
+    <form id="formulario-operacoes" name="formulario-operacoes">
+      <div class="form-grid">
+        <div class="coluna-esquerda">
+          <label for="cte">CTE</label> <input type="text" id="cte" name="cte" required>
+          <label for="destino_origem">Destino/Origem</label> <input type="text" id="destino_origem" name="destino_origem" required>
+          <label for="placa">Placa da Carreta</label> <input type="text" id="placa" name="placa" required>
+          <label for="motorista">Motorista</label> <input type="text" id="motorista" name="motorista" required>
+          <label for="transportadora">Transportadora</label>
+          <select id="transportadora" name="transportadora" required onchange="mostrarOutroCampo(this)">
+            <option value="">Selecione</option>
+            <option value="PIZZATTOLOG">PIZZATTOLOG</option>
+            <option value="SULISTA">SULISTA</option>
+            <option value="WESTROCK">WESTROCK</option>
+            <option value="AXON">AXON</option>
+            <option value="CF LOG TRANS">CF LOG TRANS</option>
+            <option value="ATIVA">ATIVA</option>
+            <option value="BRIX">BRIX</option>
+            <option value="CF LOG">CF LOG</option>
+            <option value="COOPERCARGA">COOPERCARGA</option>
+            <option value="COSTA TEIXEIRA">COSTA TEIXEIRA</option>
+            <option value="DAIFFER LOGISTICA">DAIFFER LOGISTICA</option>
+            <option value="DALFER">DALFER</option>
+            <option value="EAGLE">EAGLE</option>
+            <option value="ESTRELA DO ORIENTE">ESTRELA DO ORIENTE</option>
+            <option value="MCP">MCP</option>
+            <option value="HORIZONTES/BR">HORIZONTES/BR</option>
+            <option value="MODULAR">MODULAR</option>
+            <option value="SOLISTICA">SOLISTICA</option>
+            <option value="TRANSBEM">TRANSBEM</option>
+            <option value="outro">Outros</option>
+          </select>
+          <div id="campoOutro">
+            <label for="outraTransportadora">Digite o nome da Transportadora</label>
+            <input type="text" id="outraTransportadora" name="outraTransportadora" placeholder="Digite aqui...">
+          </div>
+          <label for="pallets">Pallets</label> <input type="number" id="pallets" name="pallets" required>
+          <label for="carga_descarga">Tipo de Operação</label>
+          <select id="carga_descarga" name="carga_descarga" required>
+            <option value="">Selecione</option>
+            <option value="carga">Carga</option>
+            <option value="descarga">Descarga</option>
+          </select>
+        </div>
+        <div class="coluna-direita">
+          <label for="agendamento">Agendamento</label> <input type="datetime-local" id="agendamento" name="agendamento" required>
+          <label for="inicio">Início</label> <input type="datetime-local" id="inicio" name="inicio" required>
+          <label for="chegada">Chegada</label> <input type="datetime-local" id="chegada" name="chegada" required>
+          <label for="termino">Término</label> <input type="datetime-local" id="termino" name="termino" required>
+        </div>
+      </div>
+      <button type="submit" id="btnEnviar">ENVIAR</button>
+    </form>
+  </div>
+
+  <div id="colaboradores" class="aba">
+    <h2>COLABORADORES</h2>
+    <input id="pesquisaNomeColaboradores" placeholder="Pesquisar por nome">
+    <select id="filtroTurnoColaboradores">
+      <option value="">Todos os turnos</option>
+      <option value="1º Turno">1º Turno</option>
+      <option value="2º Turno">2º Turno</option>
+      <option value="3º Turno">3º Turno</option>
+    </select>
+    <div id="lista-funcionarios" class="colaboradores-container"></div>
+  </div>
+
+  <div id="dialogos" class="aba">
+    <h2>Diálogos de Segurança</h2>
+    <div class="galeria" id="galeriaDialogos"></div>
+  </div>
+
+  <div id="checklist" class="aba">
+    <h2>CHECKLIST</h2>
+    <p>Conteúdo da aba "Checklist" em construção...</p>
+  </div>
+
+  <div id="indicadores" class="aba">
+    <h2>Indicadores</h2>
+    <div class="grafico-container">
+      <canvas id="graficoTipo"></canvas>
+    </div>
+  </div>
+  
+</main>
+
+<button class="fab" id="btnAddColaborador" title="Adicionar Colaborador">+</button>
+<button class="fab" id="btnAddDialogo" title="Adicionar Foto de Diálogo">+</button>
+
+
+<div class="modal" id="modalSenha">
+  <div class="modal-content">
+    <h3>Digite a senha para continuar</h3>
+    <input type="password" id="inputSenha" placeholder="Senha" />
+    <div style="text-align:right;">
+      <button type="button" class="btn-cancelar" id="btnCancelarSenha">Cancelar</button>
+      <button type="button" class="btn-salvar" id="btnConfirmarSenha">Confirmar</button>
+    </div>
+    <p id="msgErroSenha">Senha incorreta</p>
+  </div>
+</div>
+
+<div class="modal" id="modalFormColaborador">
+  <form id="formColaboradorModal" class="modal-content">
+    <h3>Adicionar Colaborador</h3>
+    <input type="text" name="nome" placeholder="Nome" required />
+    <input type="text" name="cargo" placeholder="Cargo" required />
+    <input type="text" name="turno" placeholder="Turno" required />
+    <input type="file" name="foto" accept="image/png, image/jpeg" required />
+    <div style="text-align:right;">
+      <button type="button" class="btn-cancelar" id="btnCancelarFormColaborador">Cancelar</button>
+      <button type="submit" class="btn-salvar">Salvar</button>
+    </div>
+  </form>
+</div>
+
+<div class="modal" id="modalFormDialogo">
+  <div class="modal-content">
+    <h3>Adicionar Foto de Diálogo</h3>
+    <input type="file" id="inputFotoDialogo" accept="image/png, image/jpeg" />
+    <div style="text-align:right; margin-top: 15px;">
+      <button type="button" class="btn-cancelar" id="btnCancelarDialogo">Cancelar</button>
+      <button type="button" class="btn-salvar" id="btnSalvarDialogo">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+
+  const SENHA_UNICA = "1234"; // Mantenha em mente os riscos de segurança de senha no frontend
+
+  // Controle da ação atual após senha: 'colaborador' ou 'dialogo'
+  let acaoAtual = null;
+
+  // Elementos modais e botões
+  const modalSenha = document.getElementById("modalSenha");
+  const inputSenha = document.getElementById("inputSenha");
+  const msgErroSenha = document.getElementById("msgErroSenha");
+  const btnCancelarSenha = document.getElementById("btnCancelarSenha");
+  const btnConfirmarSenha = document.getElementById("btnConfirmarSenha");
+
+  const modalFormColaborador = document.getElementById("modalFormColaborador");
+  const formColaboradorModal = document.getElementById("formColaboradorModal");
+  const btnCancelarFormColaborador = document.getElementById("btnCancelarFormColaborador"); // Renomeado para evitar conflito
+
+  const modalFormDialogo = document.getElementById("modalFormDialogo");
+  const btnCancelarDialogo = document.getElementById("btnCancelarDialogo");
+  const btnSalvarDialogo = document.getElementById("btnSalvarDialogo");
+  const inputFotoDialogo = document.getElementById("inputFotoDialogo"); // Renomeado para consistência
+
+  const btnAddColaborador = document.getElementById("btnAddColaborador");
+  const btnAddDialogo = document.getElementById("btnAddDialogo");
+
+  const listaFuncionarios = document.getElementById("lista-funcionarios");
+  const galeriaDialogos = document.getElementById("galeriaDialogos");
+  const pesquisaNomeColaboradores = document.getElementById("pesquisaNomeColaboradores");
+  const filtroTurnoColaboradores = document.getElementById("filtroTurnoColaboradores");
+
+  // Função para mostrar/esconder o campo "Outra Transportadora"
+  function mostrarOutroCampo(selectElement) {
+    const campoOutro = document.getElementById("campoOutro");
+    if (selectElement.value === "outro") {
+      campoOutro.style.display = "block";
+      document.getElementById("outraTransportadora").setAttribute("required", "required");
+    } else {
+      campoOutro.style.display = "none";
+      document.getElementById("outraTransportadora").removeAttribute("required");
+      document.getElementById("outraTransportadora").value = ""; // Limpa o campo se não for "outro"
+    }
+  }
+
+  // Função para esconder TODOS os modais de formulário
+  function esconderTodosModaisFormulario() {
+    modalFormColaborador.style.display = "none";
+    modalFormDialogo.style.display = "none";
+  }
+
+  // Mostrar aba
+  function mostrarAba(id, event) {
+    document.querySelectorAll(".aba").forEach(e => e.classList.remove("ativa"));
+    document.getElementById(id).classList.add("ativa");
+    document.querySelectorAll("nav button").forEach(b => b.classList.remove("ativo"));
+    if (event) event.currentTarget.classList.add("ativo");
+
+    // Esconde todos os botões flutuantes por padrão
+    btnAddColaborador.style.display = "none";
+    btnAddDialogo.style.display = "none";
+
+    // Mostra o botão flutuante relevante para a aba ativa e carrega dados
+    if (id === "colaboradores") {
+      btnAddColaborador.style.display = "block";
+      carregarColaboradores();
+    } else if (id === "dialogos") {
+      btnAddDialogo.style.display = "block";
+      carregarDialogos();
+    } else if (id === "indicadores") {
+      gerarIndicadores(); // Chama a função para gerar/atualizar os indicadores
+    }
+    // Esconde qualquer modal de formulário ou senha que possa estar aberto ao trocar de aba
+    esconderTodosModaisFormulario();
+    fecharModalSenha();
+  }
+
+  // Carregar colaboradores do Supabase
+  async function carregarColaboradores() {
+    const { data, error } = await supabase.from("colaboradores").select("*").order('nome');
+    if (error) {
+      alert("Erro ao carregar colaboradores: " + error.message);
+      return;
+    }
+    exibirColaboradores(data);
+  }
+
+  // Mostrar colaboradores na galeria
+  function exibirColaboradores(lista) {
+    // Aplica filtros de pesquisa e turno
+    const pesquisa = pesquisaNomeColaboradores.value.toLowerCase();
+    const turnoFiltro = filtroTurnoColaboradores.value;
+
+    const filtrados = lista.filter(c => {
+      const nomeMatch = c.nome.toLowerCase().includes(pesquisa);
+      const turnoMatch = turnoFiltro === "" || c.turno === turnoFiltro;
+      return nomeMatch && turnoMatch;
+    });
+
+    listaFuncionarios.innerHTML = "";
+
+    if (filtrados.length === 0) {
+      listaFuncionarios.innerHTML = "<p>Nenhum colaborador encontrado.</p>";
+      return;
+    }
+
+    filtrados.forEach(c => {
+      const card = document.createElement("div");
+      card.className = "funcionario-card";
+
+      const img = document.createElement("img");
+      img.className = "funcionario-foto";
+      img.src = c.foto;
+      img.alt = `Foto de ${c.nome}`;
+      card.appendChild(img);
+
+      const info = document.createElement("div");
+      info.className = "funcionario-info";
+
+      const nome = document.createElement("div");
+      nome.className = "funcionario-nome";
+      nome.textContent = c.nome;
+      info.appendChild(nome);
+
+      const cargo = document.createElement("div");
+      cargo.className = "funcionario-cargo";
+      cargo.textContent = `Cargo: ${c.cargo}`;
+      info.appendChild(cargo);
+
+      const turno = document.createElement("div");
+      turno.className = "funcionario-turno";
+      turno.textContent = `Turno: ${c.turno}`;
+      info.appendChild(turno);
+
+      const btnExcluir = document.createElement("button");
+      btnExcluir.className = "btn-excluir";
+      btnExcluir.textContent = "x";
+      btnExcluir.onclick = () => {
+          // Passa a ação 'excluir-colaborador' e o ID do colaborador
+          abrirModalSenha('excluir-colaborador', c.id);
+      };
+      card.appendChild(btnExcluir);
+
+      card.appendChild(info);
+      listaFuncionarios.appendChild(card);
+    });
+  }
+
+  // Event Listeners para pesquisa e filtro de colaboradores
+  pesquisaNomeColaboradores.addEventListener("input", carregarColaboradores);
+  filtroTurnoColaboradores.addEventListener("change", carregarColaboradores);
+
+  // Carregar diálogos do Supabase
+  async function carregarDialogos() {
+    const { data, error } = await supabase.from("dialogos").select("*").order('id', { ascending: false });
+    if (error) {
+      alert("Erro ao carregar diálogos: " + error.message);
+      return;
+    }
+    galeriaDialogos.innerHTML = "";
+    if (data.length === 0) {
+      galeriaDialogos.innerHTML = "<p>Nenhuma foto de diálogo adicionada.</p>";
+      return;
+    }
+    data.forEach(d => {
+      const img = document.createElement("img");
+      img.src = d.url;
+      img.alt = "Foto de diálogo";
+      galeriaDialogos.appendChild(img);
+    });
+  }
+
+  // Mostrar modal senha
+  function abrirModalSenha(acao, id = null) { // id é para o caso de exclusão
+    esconderTodosModaisFormulario(); // Garante que nenhum modal de formulário esteja aberto
+    acaoAtual = acao; // 'colaborador', 'dialogo' ou 'excluir-colaborador'
+    if (acao === 'excluir-colaborador') {
+        modalSenha.dataset.colaboradorId = id; // Armazena o ID do colaborador
+    } else {
+        delete modalSenha.dataset.colaboradorId;
+    }
+    inputSenha.value = "";
+    msgErroSenha.style.display = "none";
+    modalSenha.style.display = "flex";
+    inputSenha.focus();
+  }
+
+  // Fechar modal senha
+  function fecharModalSenha() {
+    modalSenha.style.display = "none";
+    acaoAtual = null;
+    delete modalSenha.dataset.colaboradorId;
+  }
+
+  // Confirmar senha
+  btnConfirmarSenha.onclick = async () => {
+    const senha = inputSenha.value.trim();
+    if (senha === SENHA_UNICA) {
+      fecharModalSenha();
+      if (acaoAtual === "colaborador") {
+        abrirModalColaborador();
+      } else if (acaoAtual === "dialogo") {
+        abrirModalDialogo();
+      } else if (acaoAtual === "excluir-colaborador") {
+        const colaboradorId = modalSenha.dataset.colaboradorId;
+        if (colaboradorId) {
+            const confirmDelete = confirm("Tem certeza que deseja excluir este colaborador?");
+            if (confirmDelete) {
+                await excluirColaborador(colaboradorId);
+            }
+        }
+      }
+    } else {
+      msgErroSenha.style.display = "block";
+    }
+  }
+
+  btnCancelarSenha.onclick = fecharModalSenha;
+
+  // Abrir modal adicionar colaborador
+  function abrirModalColaborador() {
+    esconderTodosModaisFormulario();
+    formColaboradorModal.reset();
+    modalFormColaborador.style.display = "flex";
+  }
+
+  // Fechar modal colaborador
+  btnCancelarFormColaborador.onclick = () => {
+    modalFormColaborador.style.display = "none";
+  }
+
+  // Abrir modal adicionar diálogo
+  function abrirModalDialogo() {
+    esconderTodosModaisFormulario();
+    inputFotoDialogo.value = "";
+    modalFormDialogo.style.display = "flex";
+  }
+
+  // Fechar modal diálogo
+  btnCancelarDialogo.onclick = () => {
+    modalFormDialogo.style.display = "none";
+  }
+
+  // Enviar colaborador para Supabase
+  formColaboradorModal.onsubmit = async (e) => {
+    e.preventDefault();
+    const nome = e.target.nome.value.trim();
+    const cargo = e.target.cargo.value.trim();
+    const turno = e.target.turno.value.trim();
+    const fotoFile = e.target.foto.files[0];
+
+    if (!nome || !cargo || !turno || !fotoFile) {
+      alert("Preencha todos os campos!");
+      return;
+    }
+
+    // Upload da foto para storage
+    const fileExt = fotoFile.name.split('.').pop();
+    const fileName = `${Date.now()}.${fileExt}`;
+    const filePath = `colaboradores/${fileName}`;
+
+    let { error: uploadError } = await supabase.storage
+      .from('imagens') // Certifique-se que seu bucket se chama 'imagens' ou ajuste aqui
+      .upload(filePath, fotoFile);
+
+    if (uploadError) {
+      alert("Erro ao enviar foto: " + uploadError.message);
+      console.error("Erro Supabase Upload:", uploadError);
+      return;
+    }
+
+    // Obter URL público
+    const { data: publicUrlData } = supabase.storage
+      .from('imagens')
+      .getPublicUrl(filePath);
+
+    // Inserir no banco
+    const { data, error } = await supabase.from('colaboradores').insert({
+      nome, cargo, turno, foto: publicUrlData.publicUrl
+    });
+
+    if (error) {
+      alert("Erro ao salvar colaborador: " + error.message);
+      console.error("Erro Supabase Insert:", error);
+      return;
+    }
+
+    modalFormColaborador.style.display = "none";
+    carregarColaboradores();
+    alert("Colaborador salvo com sucesso!");
+  };
+
+  // Excluir colaborador
+  async function excluirColaborador(id) {
+    const { error } = await supabase.from('colaboradores').delete().eq('id', id);
+    if (error) {
+      alert("Erro ao excluir colaborador: " + error.message);
+      console.error("Erro Supabase Delete:", error);
+    } else {
+      alert("Colaborador excluído com sucesso!");
+      carregarColaboradores();
+    }
+  }
+
+  // Salvar diálogo
+  btnSalvarDialogo.onclick = async () => {
+    const fotoFile = inputFotoDialogo.files[0];
+    if (!fotoFile) {
+      alert("Selecione uma foto para enviar!");
+      return;
+    }
+
+    const fileExt = fotoFile.name.split('.').pop();
+    const fileName = `${Date.now()}.${fileExt}`;
+    const filePath = `dialogos/${fileName}`;
+
+    let { error: uploadError } = await supabase.storage
+      .from('imagens') // Certifique-se que seu bucket se chama 'imagens' ou ajuste aqui
+      .upload(filePath, fotoFile);
+
+    if (uploadError) {
+      alert("Erro ao enviar foto: " + uploadError.message);
+      console.error("Erro Supabase Upload:", uploadError);
+      return;
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from('imagens')
+      .getPublicUrl(filePath);
+
+    const { data, error } = await supabase.from('dialogos').insert({
+      url: publicUrlData.publicUrl
+    });
+
+    if (error) {
+      alert("Erro ao salvar diálogo: " + error.message);
+      console.error("Erro Supabase Insert:", error);
+      return;
+    }
+
+    modalFormDialogo.style.display = "none";
+    carregarDialogos();
+    alert("Foto de diálogo salva com sucesso!");
+  };
+
+  // Eventos botões flutuantes (FABs)
+  btnAddColaborador.onclick = () => abrirModalSenha("colaborador");
+  btnAddDialogo.onclick = () => abrirModalSenha("dialogo");
+
+
+  // Enviar formulário de Operações
+  const formularioOperacoes = document.getElementById("formulario-operacoes");
+  formularioOperacoes.onsubmit = async (e) => {
+    e.preventDefault();
+
+    const cte = e.target.cte.value.trim();
+    const destinoOrigem = e.target.destino_origem.value.trim();
+    const placa = e.target.placa.value.trim();
+    const motorista = e.target.motorista.value.trim();
+    let transportadora = e.target.transportadora.value;
+    const outraTransportadora = e.target.outraTransportadora.value.trim();
+    const pallets = parseInt(e.target.pallets.value, 10);
+    const cargaDescarga = e.target.carga_descarga.value;
+    const agendamento = e.target.agendamento.value;
+    const inicio = e.target.inicio.value;
+    const chegada = e.target.chegada.value;
+    const termino = e.target.termino.value;
+
+    // Se a transportadora selecionada for "outro", usa o valor do campo "outraTransportadora"
+    if (transportadora === "outro") {
+      transportadora = outraTransportadora;
+    }
+
+    if (!cte || !destinoOrigem || !placa || !motorista || !transportadora || isNaN(pallets) || !cargaDescarga || !agendamento || !inicio || !chegada || !termino) {
+      alert("Por favor, preencha todos os campos do formulário de operações.");
+      return;
+    }
+
+    // Inserir no banco de dados (assumindo que sua tabela se chame 'formulario')
+    const { data, error } = await supabase.from('formulario').insert({
+      cte,
+      destino_origem: destinoOrigem,
+      placa,
+      motorista,
+      transportadora,
+      pallets,
+      carga_descarga: cargaDescarga,
+      agendamento,
+      inicio,
+      chegada,
+      termino
+    });
+
+    if (error) {
+      alert("Erro ao salvar operação: " + error.message);
+      console.error("Erro Supabase:", error);
+      return;
+    }
+
+    alert("Operação salva com sucesso!");
+    formularioOperacoes.reset(); // Limpa o formulário após o envio
+    mostrarOutroCampo(document.getElementById("transportadora")); // Reseta o campo "Outro"
+  };
+
+  let graficoInstancia = null; // Para armazenar a instância do gráfico e destruí-la quando necessário
+
+  async function gerarIndicadores() {
+    const { data, error } = await supabase.from("formulario").select("carga_descarga");
+    if (error) {
+      console.error("Erro ao carregar dados para indicadores: ", error);
+      return;
+    }
+    const carga = data.filter(d => d.carga_descarga === "carga").length;
+    const descarga = data.filter(d => d.carga_descarga === "descarga").length;
+
+    // Destrói o gráfico existente se houver um para evitar duplicação em atualizações
+    if (graficoInstancia) {
+      graficoInstancia.destroy();
+    }
+
+    const ctx = document.getElementById("graficoTipo").getContext("2d");
+    graficoInstancia = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ['Carga', 'Descarga'],
+        datasets: [{ label: 'Número de Operações', data: [carga, descarga], backgroundColor: ['#4caf50', '#2196f3'] }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top',
+          },
+          title: {
+            display: true,
+            text: 'Operações de Carga vs Descarga'
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            title: {
+                display: true,
+                text: 'Quantidade'
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // Ao carregar página, abrir aba default
+  document.addEventListener('DOMContentLoaded', () => {
+      mostrarAba('operacoes'); // Inicia na aba de operações
+      mostrarOutroCampo(document.getElementById("transportadora")); // Garante que o campo "Outro" esteja no estado correto ao carregar
+  });
+</script>
+</body>
+</html>
