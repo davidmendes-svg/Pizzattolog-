@@ -45,3 +45,12 @@ btnConfirmarSenha.onclick = async () => {
     msgErroSenha.style.display = "block";
   }
 };
+
+// Ao carregar página, abrir aba default
+document.addEventListener('DOMContentLoaded', () => {
+  mostrarAba('operacoes'); // Inicia na aba de operações
+  mostrarOutroCampo(document.getElementById("transportadora")); // Garante que o campo "Outro" esteja no estado correto ao carregar
+});
+
+window.mostrarAba = mostrarAba;
+window.mostrarOutroCampo = mostrarOutroCampo;
